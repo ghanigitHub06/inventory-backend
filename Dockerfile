@@ -1,8 +1,20 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
-COPY . .
+
+# Copy maven files first for dependency caching
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
 RUN chmod +x mvnw
-RUN ./mvnw clean package -DskipTests
+
+# Download dependencies
+RUN ./mvnw dependency:go-offline -B
+
+# Copy source and build
+COPY src ./src
+RUN ./mvnw clean package -DskipTests -B
+
+# Check jar was created
+RUN ls -la target/
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
